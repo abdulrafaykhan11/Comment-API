@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aurelia One Reviews</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BV+dodLLv3UTZ1qscMZ0gnD/4pPWg9K7A0rS5EYOHdC3Ry8jQ+WqM5a6bet0RZgL" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page-glow page-glow-left"></div>
+    <div class="page-glow page-glow-right"></div>
+
+    <main class="site-shell container">
+        <header class="site-topbar">
+            <a class="brand-mark" href="#overview">
+                <span class="brand-symbol">A</span>
+                <span class="brand-copy">
+                    <strong>Aurelia</strong>
+                    <small>Customer Voices</small>
+                </span>
+            </a>
+
+            <nav class="top-nav">
+                <a href="#overview">Overview</a>
+                <a href="#discussion">Discussion</a>
+                <a href="#community">Community</a>
+            </nav>
+
+            <button id="refresh-btn" class="refresh-btn" type="button">Refresh Feed</button>
+        </header>
+
+        <section id="overview" class="hero-section">
+            <div class="hero-copy">
+                <span class="eyebrow">Premium Audio Product</span>
+                <h1>Aurelia One wireless headphones with a real product-style comments experience.</h1>
+                <p>
+                    This page fetches live comments from an API and presents them like a polished customer discussion space.
+                    Users can explore the thread, like comments, open replies, and post new comments directly on the page.
+                </p>
+
+                <div class="hero-pills">
+                    <span>Adaptive noise cancellation</span>
+                    <span>40 hour battery</span>
+                    <span>Spatial audio</span>
+                </div>
+            </div>
+
+            <div class="product-panel">
+                <div class="product-visual">
+                    <div class="product-ring ring-large"></div>
+                    <div class="product-ring ring-small"></div>
+                    <div class="product-device">
+                        <span class="device-band"></span>
+                        <span class="device-cup device-cup-left"></span>
+                        <span class="device-cup device-cup-right"></span>
+                    </div>
+                </div>
+
+                <div class="product-meta">
+                    <div class="meta-card">
+                        <span class="meta-label">Customer rating</span>
+                        <strong>4.8/5</strong>
+                        <p>Praised for comfort, clarity, and premium finish.</p>
+                    </div>
+                    <div class="meta-card">
+                        <span class="meta-label">Live thread</span>
+                        <strong id="records-count">20</strong>
+                        <p id="feed-status">Loading comments...</p>
+                    </div>
+                    <div class="meta-card">
+                        <span class="meta-label">Last sync</span>
+                        <strong id="sync-time">Waiting...</strong>
+                        <p>Updated when the API feed refreshes successfully.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="discussion" class="discussion-shell">
+            <div class="discussion-main">
+                <div class="discussion-head">
+                    <div>
+                        <p class="section-kicker mb-2">Customer Discussion</p>
+                        <h2 class="section-title mb-1">What buyers are saying</h2>
+                        <p class="section-copy mb-0">Browse the latest comments, expand replies, and join the conversation yourself.</p>
+                    </div>
+                    <div class="head-pills">
+                        <span class="head-pill active">Newest</span>
+                        <span class="head-pill">Most Helpful</span>
+                    </div>
+                </div>
+
+                <form id="comment-form" class="composer-card">
+                    <div class="composer-header">
+                        <div class="composer-avatar">You</div>
+                        <div>
+                            <h3 class="composer-title mb-1">Add your comment</h3>
+                            <p class="composer-copy mb-0">Share your experience with the Aurelia One.</p>
+                        </div>
+                    </div>
+
+                    <div class="composer-grid">
+                        <label class="input-group-box">
+                            <span>Name</span>
+                            <input id="comment-name" type="text" placeholder="Your name" required>
+                        </label>
+                        <label class="input-group-box">
+                            <span>Email</span>
+                            <input id="comment-email" type="email" placeholder="you@example.com" required>
+                        </label>
+                        <label class="input-group-box composer-textarea">
+                            <span>Comment</span>
+                            <textarea id="comment-body" rows="4" placeholder="Write your comment..." required></textarea>
+                        </label>
+                    </div>
+
+                    <div class="composer-footer">
+                        <button class="submit-btn" type="submit">Post Comment</button>
+                    </div>
+                </form>
+
+                <div id="alert-container" class="mb-4"></div>
+                <div id="output" class="comment-stream"></div>
+            </div>
+
+            <aside id="community" class="discussion-sidebar">
+                <div class="sidebar-card community-card">
+                    <p class="sidebar-label">Community Snapshot</p>
+                    <h3>Inside the Aurelia thread</h3>
+                    <div class="stats-grid">
+                        <div>
+                            <span>Total comments</span>
+                            <strong id="sidebar-comments">0</strong>
+                        </div>
+                        <div>
+                            <span>Total replies</span>
+                            <strong id="sidebar-replies">0</strong>
+                        </div>
+                        <div>
+                            <span>Total likes</span>
+                            <strong id="sidebar-likes">0</strong>
+                        </div>
+                        <div>
+                            <span>Reply rate</span>
+                            <strong id="sidebar-response">0%</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-card standout-card">
+                    <p class="sidebar-label">Most Loved Comment</p>
+                    <h3 id="featured-author">Loading...</h3>
+                    <p id="featured-comment" class="sidebar-copy mb-0">The top comment preview will appear here after the feed loads.</p>
+                </div>
+
+                <div class="sidebar-card quick-links-card">
+                    <p class="sidebar-label">Quick Links</p>
+                    <div class="quick-links">
+                        <a href="#overview">Back to overview</a>
+                        <a href="#discussion">Jump to comments</a>
+                        <a href="#community">Community highlights</a>
+                    </div>
+                </div>
+
+                <div class="sidebar-card policy-card">
+                    <p class="sidebar-label">Discussion Guidelines</p>
+                    <ul class="policy-list">
+                        <li>Be respectful and specific with product feedback.</li>
+                        <li>Use replies to continue a focused conversation.</li>
+                        <li>Like helpful comments to surface better answers.</li>
+                        <li>Refresh the feed to reload the latest API content.</li>
+                    </ul>
+                </div>
+            </aside>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
