@@ -51,12 +51,18 @@
 
             <div class="product-panel">
                 <div class="product-visual">
-                    <div class="product-ring ring-large"></div>
-                    <div class="product-ring ring-small"></div>
-                    <div class="product-device">
-                        <span class="device-band"></span>
-                        <span class="device-cup device-cup-left"></span>
-                        <span class="device-cup device-cup-right"></span>
+                    <img
+                        class="product-photo"
+                        src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1100&q=80"
+                        alt="Premium wireless headphones on a warm neutral background"
+                    >
+                    <div class="product-overlay">
+                        <span class="product-chip">Premium finish</span>
+                        <span class="product-chip">Editorial look</span>
+                    </div>
+                    <div class="product-photo-caption">
+                        <p class="product-photo-label">Featured Visual</p>
+                        <h3>A warmer premium product shot that matches the luxe website theme.</h3>
                     </div>
                 </div>
 
@@ -94,7 +100,7 @@
                     </div>
                 </div>
 
-                <form id="comment-form" class="composer-card">
+                <form id="comment-form" class="composer-card" novalidate>
                     <div class="composer-header">
                         <div class="composer-avatar">You</div>
                         <div>
@@ -106,15 +112,18 @@
                     <div class="composer-grid">
                         <label class="input-group-box">
                             <span>Name</span>
-                            <input id="comment-name" type="text" placeholder="Your name" required>
+                            <input id="comment-name" name="name" type="text" placeholder="Your name" required>
+                            <span class="field-error" aria-live="polite" hidden></span>
                         </label>
                         <label class="input-group-box">
                             <span>Email</span>
-                            <input id="comment-email" type="email" placeholder="you@example.com" required>
+                            <input id="comment-email" name="email" type="email" placeholder="you@example.com" required>
+                            <span class="field-error" aria-live="polite" hidden></span>
                         </label>
                         <label class="input-group-box composer-textarea">
                             <span>Comment</span>
-                            <textarea id="comment-body" rows="4" placeholder="Write your comment..." required></textarea>
+                            <textarea id="comment-body" name="body" rows="4" placeholder="Write your comment..." required></textarea>
+                            <span class="field-error" aria-live="polite" hidden></span>
                         </label>
                     </div>
 

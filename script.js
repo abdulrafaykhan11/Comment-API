@@ -21,6 +21,8 @@ const featuredComment = document.getElementById("featured-comment");
 let commentsState = [];
 let nextCommentId = 1000;
 let nextReplyId = 5000;
+let lastSyncLabel = "Waiting...";
+let pendingReplyFocusCommentId = null;
 
 const icons = {
     heart: `
@@ -43,6 +45,21 @@ const icons = {
             <path d="M4 17h.01"></path>
         </svg>
     `
+};
+
+const validationConfig = {
+    name: {
+        required: "Please enter your name.",
+        invalid: "Name must be at least 3 characters."
+    },
+    email: {
+        required: "Please enter your email.",
+        invalid: "Enter a valid email address."
+    },
+    body: {
+        required: "Please write your message.",
+        invalid: "Message must be at least 12 characters."
+    }
 };
 
 function escapeHtml(value) {
@@ -222,14 +239,32 @@ function renderReply(reply) {
     `;
 }
 
-function renderReplyForm(commentId) {
+function renderReplyForm(comment) {
     return `
-        <form class="reply-form" data-reply-form="${commentId}">
-            <div class="reply-form-grid">
-                <input class="reply-input" name="name" type="text" placeholder="Your name" required>
-                <input class="reply-input" name="email" type="email" placeholder="you@example.com" required>
+        <form class="reply-form" data-reply-form="${comment.id}" novalidate>
+            <div class="reply-form-intro">
+                <div>
+                    <p class="reply-form-kicker">Reply mode</p>
+                    <h4 class="reply-form-title">Replying to ${escapeHtml(comment.name)}</h4>
+                </div>
+                <button class="reply-cancel-btn" type="button" data-action="toggle-reply-form" data-comment-id="${comment.id}">
+                    Cancel
+                </button>
             </div>
-            <textarea class="reply-textarea" name="body" rows="3" placeholder="Write your reply..." required></textarea>
+            <div class="reply-form-grid">
+                <div class="reply-field">
+                    <input class="reply-input" name="name" type="text" placeholder="Your name" required>
+                    <span class="field-error" aria-live="polite" hidden></span>
+                </div>
+                <div class="reply-field">
+                    <input class="reply-input" name="email" type="email" placeholder="you@example.com" required>
+                    <span class="field-error" aria-live="polite" hidden></span>
+                </div>
+            </div>
+            <div class="reply-field reply-field-full">
+                <textarea class="reply-textarea" name="body" rows="3" placeholder="Write your reply..." required></textarea>
+                <span class="field-error" aria-live="polite" hidden></span>
+            </div>
             <div class="reply-form-footer">
                 <span class="reply-note">Reply will appear instantly in this demo.</span>
                 <button class="reply-submit-btn" type="submit">Reply</button>
@@ -243,14 +278,27 @@ function renderReplies(comment) {
         return "";
     }
 
+    const contextMarkup = (comment.repliesVisible || comment.replyFormVisible)
+        ? `
+            <div class="reply-context ${comment.replyFormVisible ? "active" : ""}">
+                <span class="reply-context-icon">&#8627;</span>
+                <div>
+                    <p class="reply-context-label">${comment.replyFormVisible ? "Reply mode is active" : "Replies are open"}</p>
+                    <strong>${comment.replyFormVisible ? `You are replying to ${escapeHtml(comment.name)}` : `${comment.replies.length} ${comment.replies.length === 1 ? "reply" : "replies"} visible in this thread`}</strong>
+                </div>
+            </div>
+        `
+        : "";
+
     const repliesMarkup = comment.repliesVisible && comment.replies.length
         ? `<div class="reply-list">${comment.replies.map(renderReply).join("")}</div>`
         : "";
 
-    const formMarkup = comment.replyFormVisible ? renderReplyForm(comment.id) : "";
+    const formMarkup = comment.replyFormVisible ? renderReplyForm(comment) : "";
 
     return `
         <div class="reply-thread">
+            ${contextMarkup}
             ${repliesMarkup}
             ${formMarkup}
         </div>
@@ -259,7 +307,7 @@ function renderReplies(comment) {
 
 function renderComment(comment) {
     return `
-        <article class="comment-card" data-comment-id="${comment.id}">
+        <article class="comment-card ${comment.replyFormVisible ? "is-replying" : ""} ${comment.repliesVisible ? "thread-open" : ""}" data-comment-id="${comment.id}">
             <div class="comment-top">
                 <div class="comment-author">
                     <div class="avatar-badge">${escapeHtml(getInitials(comment.name))}</div>
@@ -286,12 +334,12 @@ function renderComment(comment) {
                         ${icons.heart}
                         <span class="action-count">${comment.likes}</span>
                     </button>
-                    <button class="action-btn" type="button" data-action="toggle-reply-form" data-comment-id="${comment.id}">
+                    <button class="action-btn ${comment.replyFormVisible ? "active" : ""}" type="button" data-action="toggle-reply-form" data-comment-id="${comment.id}">
                         ${icons.reply}
-                        <span class="action-count">Reply</span>
+                        <span class="action-count">${comment.replyFormVisible ? "Cancel reply" : "Reply"}</span>
                     </button>
                     ${comment.replies.length ? `
-                        <button class="reply-toggle-btn" type="button" data-action="toggle-replies" data-comment-id="${comment.id}">
+                        <button class="reply-toggle-btn ${comment.repliesVisible ? "active" : ""}" type="button" data-action="toggle-replies" data-comment-id="${comment.id}">
                             ${icons.thread}
                             <span>${comment.repliesVisible ? "Hide replies" : "Show more"}</span>
                             <span class="reply-toggle-count">(${comment.replies.length})</span>
@@ -339,6 +387,91 @@ function updateSidebar() {
     }
 }
 
+function getValidationMessage(field) {
+    const fieldName = field.name;
+    const value = field.value.trim();
+    const messages = validationConfig[fieldName];
+
+    if (!messages) {
+        return "";
+    }
+
+    if (!value) {
+        return messages.required;
+    }
+
+    if (fieldName === "name" && value.length < 3) {
+        return messages.invalid;
+    }
+
+    if (fieldName === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        return messages.invalid;
+    }
+
+    if (fieldName === "body" && value.length < 12) {
+        return messages.invalid;
+    }
+
+    return "";
+}
+
+function setFieldValidationState(field, message) {
+    const wrapper = field.closest(".input-group-box, .reply-field");
+    const errorNode = wrapper?.querySelector(".field-error");
+    const hasError = Boolean(message);
+
+    field.classList.toggle("is-invalid-input", hasError);
+    field.setAttribute("aria-invalid", String(hasError));
+
+    if (wrapper) {
+        wrapper.classList.toggle("is-invalid", hasError);
+    }
+
+    if (errorNode) {
+        errorNode.textContent = message;
+        errorNode.hidden = !hasError;
+    }
+}
+
+function validateField(field) {
+    if (!field || !field.name) {
+        return true;
+    }
+
+    const message = getValidationMessage(field);
+    setFieldValidationState(field, message);
+
+    return !message;
+}
+
+function validateForm(formElement) {
+    const fields = Array.from(formElement.querySelectorAll("[name]"));
+    let firstInvalidField = null;
+
+    for (const field of fields) {
+        const isValid = validateField(field);
+
+        if (!isValid && !firstInvalidField) {
+            firstInvalidField = field;
+        }
+    }
+
+    if (firstInvalidField) {
+        firstInvalidField.focus();
+        return false;
+    }
+
+    return true;
+}
+
+function clearFormValidation(formElement) {
+    const fields = Array.from(formElement.querySelectorAll("[name]"));
+
+    for (const field of fields) {
+        setFieldValidationState(field, "");
+    }
+}
+
 function renderComments() {
     if (!commentsState.length) {
         showEmptyState();
@@ -349,8 +482,26 @@ function renderComments() {
     output.innerHTML = commentsState.map(renderComment).join("");
     recordsCount.textContent = commentsState.length;
     setStatus("Live discussion");
-    syncTime.textContent = formatTime();
+    syncTime.textContent = lastSyncLabel;
     updateSidebar();
+
+    if (pendingReplyFocusCommentId !== null) {
+        focusReplyForm(pendingReplyFocusCommentId);
+        pendingReplyFocusCommentId = null;
+    }
+}
+
+function focusReplyForm(commentId) {
+    const replyForm = output.querySelector(`[data-reply-form="${commentId}"]`);
+    const replyTextarea = replyForm?.querySelector(".reply-textarea");
+
+    if (replyTextarea) {
+        replyTextarea.focus();
+        replyTextarea.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest"
+        });
+    }
 }
 
 function toggleCommentLike(commentId) {
@@ -379,16 +530,23 @@ function toggleReplyLike(replyId) {
 }
 
 function toggleReplyForm(commentId) {
-    commentsState = commentsState.map((comment) => {
-        if (comment.id === commentId) {
-            return {
-                ...comment,
-                replyFormVisible: !comment.replyFormVisible
-            };
-        }
+    const activeComment = commentsState.find((comment) => comment.id === commentId);
 
-        return comment;
-    });
+    if (!activeComment) {
+        return;
+    }
+
+    const shouldOpen = !activeComment.replyFormVisible;
+
+    commentsState = commentsState.map((comment) => ({
+        ...comment,
+        replyFormVisible: comment.id === commentId ? shouldOpen : false,
+        repliesVisible: comment.id === commentId
+            ? shouldOpen || comment.repliesVisible
+            : comment.repliesVisible
+    }));
+
+    pendingReplyFocusCommentId = shouldOpen ? commentId : null;
 
     renderComments();
 }
@@ -472,6 +630,7 @@ async function loadComments() {
 
         const comments = await response.json();
         buildCommentsState(comments);
+        lastSyncLabel = formatTime();
         renderComments();
     } catch (error) {
         console.error("Fetch error:", error);
@@ -485,16 +644,17 @@ async function loadComments() {
 commentForm.addEventListener("submit", (event) => {
     event.preventDefault();
 
+    if (!validateForm(commentForm)) {
+        return;
+    }
+
     const name = commentNameInput.value.trim();
     const email = commentEmailInput.value.trim();
     const body = commentBodyInput.value.trim();
 
-    if (!name || !email || !body) {
-        return;
-    }
-
     addNewComment(name, email, body);
     commentForm.reset();
+    clearFormValidation(commentForm);
 });
 
 output.addEventListener("click", (event) => {
@@ -525,6 +685,46 @@ output.addEventListener("click", (event) => {
     }
 });
 
+commentForm.addEventListener("input", (event) => {
+    const field = event.target.closest("[name]");
+
+    if (!field) {
+        return;
+    }
+
+    validateField(field);
+});
+
+commentForm.addEventListener("focusout", (event) => {
+    const field = event.target.closest("[name]");
+
+    if (!field) {
+        return;
+    }
+
+    validateField(field);
+});
+
+output.addEventListener("input", (event) => {
+    const field = event.target.closest(".reply-input, .reply-textarea");
+
+    if (!field) {
+        return;
+    }
+
+    validateField(field);
+});
+
+output.addEventListener("focusout", (event) => {
+    const field = event.target.closest(".reply-input, .reply-textarea");
+
+    if (!field) {
+        return;
+    }
+
+    validateField(field);
+});
+
 output.addEventListener("submit", (event) => {
     const replyForm = event.target.closest("[data-reply-form]");
 
@@ -534,15 +734,15 @@ output.addEventListener("submit", (event) => {
 
     event.preventDefault();
 
+    if (!validateForm(replyForm)) {
+        return;
+    }
+
     const commentId = Number(replyForm.dataset.replyForm);
     const formData = new FormData(replyForm);
     const name = String(formData.get("name") || "").trim();
     const email = String(formData.get("email") || "").trim();
     const body = String(formData.get("body") || "").trim();
-
-    if (!name || !email || !body) {
-        return;
-    }
 
     addReply(commentId, name, email, body);
 });
